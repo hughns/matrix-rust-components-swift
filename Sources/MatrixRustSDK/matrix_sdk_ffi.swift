@@ -1152,6 +1152,21 @@ public protocol ClientProtocol: AnyObject, Sendable {
     func getUrlPreview(url: String, ts: UInt64?) async throws  -> String?
     
     /**
+     * Checks which modes of QR code login this client supports to grant a
+     * login to a new client.
+     *
+     * This is meant for an existing client that is logged in. For a new
+     * client that wants to log in, use
+     * [`Client::login_with_qr_code_support()`] instead.
+     *
+     * No mode is supported unless OAuth 2.0 was used to log in this client
+     * and the authorization server supports the device authorization grant.
+     * Otherwise, scanning a QR code is supported, and generating a QR code is
+     * supported if the homeserver supports creating rendezvous sessions.
+     */
+    func grantLoginWithQrCodeSupport() async throws  -> QrCodeLoginSupport
+    
+    /**
      * Whether the user has joined at least one encrypted room, spaces
      * excluded.
      *
@@ -1193,7 +1208,12 @@ public protocol ClientProtocol: AnyObject, Sendable {
     func isLivekitRtcSupported() async throws  -> Bool
     
     /**
-     * Checks if the server supports login using a QR code.
+     * Checks if this client can grant a login to a new client by generating
+     * a QR code.
+     *
+     * This is only meant for an existing client that is logged in, despite
+     * its name. It is equivalent to the `generate` field returned by
+     * [`Client::grant_login_with_qr_code_support()`].
      */
     func isLoginWithQrCodeSupported() async throws  -> Bool
     
@@ -1270,6 +1290,18 @@ public protocol ClientProtocol: AnyObject, Sendable {
      * Completes the OAuth login process.
      */
     func loginWithOauthCallback(callbackUrl: String) async throws 
+    
+    /**
+     * Checks which modes of QR code login this client supports to log in.
+     *
+     * This is meant for a new client that isn't logged in yet. For an
+     * existing client that wants to grant a login to a new client, use
+     * [`Client::grant_login_with_qr_code_support()`] instead.
+     *
+     * Scanning a QR code is always supported. Generating a QR code is
+     * supported if the homeserver supports creating rendezvous sessions.
+     */
+    func loginWithQrCodeSupport() async throws  -> QrCodeLoginSupport
     
     /**
      * Log the current user out.
@@ -2666,6 +2698,35 @@ open func getUrlPreview(url: String, ts: UInt64?)async throws  -> String?  {
 }
     
     /**
+     * Checks which modes of QR code login this client supports to grant a
+     * login to a new client.
+     *
+     * This is meant for an existing client that is logged in. For a new
+     * client that wants to log in, use
+     * [`Client::login_with_qr_code_support()`] instead.
+     *
+     * No mode is supported unless OAuth 2.0 was used to log in this client
+     * and the authorization server supports the device authorization grant.
+     * Otherwise, scanning a QR code is supported, and generating a QR code is
+     * supported if the homeserver supports creating rendezvous sessions.
+     */
+open func grantLoginWithQrCodeSupport()async throws  -> QrCodeLoginSupport  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_matrix_sdk_ffi_fn_method_client_grant_login_with_qr_code_support(
+                        self.uniffiCloneHandle()
+                )
+            },
+            pollFunc: ffi_matrix_sdk_ffi_rust_future_poll_rust_buffer,
+            completeFunc: ffi_matrix_sdk_ffi_rust_future_complete_rust_buffer,
+            freeFunc: ffi_matrix_sdk_ffi_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterTypeQrCodeLoginSupport_lift,
+            errorHandler: FfiConverterTypeClientError_lift
+        )
+}
+    
+    /**
      * Whether the user has joined at least one encrypted room, spaces
      * excluded.
      *
@@ -2792,7 +2853,12 @@ open func isLivekitRtcSupported()async throws  -> Bool  {
 }
     
     /**
-     * Checks if the server supports login using a QR code.
+     * Checks if this client can grant a login to a new client by generating
+     * a QR code.
+     *
+     * This is only meant for an existing client that is logged in, despite
+     * its name. It is equivalent to the `generate` field returned by
+     * [`Client::grant_login_with_qr_code_support()`].
      */
 open func isLoginWithQrCodeSupported()async throws  -> Bool  {
     return
@@ -3035,6 +3101,32 @@ open func loginWithOauthCallback(callbackUrl: String)async throws   {
             freeFunc: ffi_matrix_sdk_ffi_rust_future_free_void,
             liftFunc: { $0 },
             errorHandler: FfiConverterTypeOAuthError_lift
+        )
+}
+    
+    /**
+     * Checks which modes of QR code login this client supports to log in.
+     *
+     * This is meant for a new client that isn't logged in yet. For an
+     * existing client that wants to grant a login to a new client, use
+     * [`Client::grant_login_with_qr_code_support()`] instead.
+     *
+     * Scanning a QR code is always supported. Generating a QR code is
+     * supported if the homeserver supports creating rendezvous sessions.
+     */
+open func loginWithQrCodeSupport()async throws  -> QrCodeLoginSupport  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_matrix_sdk_ffi_fn_method_client_login_with_qr_code_support(
+                        self.uniffiCloneHandle()
+                )
+            },
+            pollFunc: ffi_matrix_sdk_ffi_rust_future_poll_rust_buffer,
+            completeFunc: ffi_matrix_sdk_ffi_rust_future_complete_rust_buffer,
+            freeFunc: ffi_matrix_sdk_ffi_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterTypeQrCodeLoginSupport_lift,
+            errorHandler: FfiConverterTypeClientError_lift
         )
 }
     
@@ -60344,6 +60436,9 @@ private let initializationResult: InitializationResult = {
     if (uniffi_matrix_sdk_ffi_checksum_method_client_get_url_preview() != 44378) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_matrix_sdk_ffi_checksum_method_client_grant_login_with_qr_code_support() != 19955) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_matrix_sdk_ffi_checksum_method_client_has_encrypted_rooms() != 34305) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -60365,7 +60460,7 @@ private let initializationResult: InitializationResult = {
     if (uniffi_matrix_sdk_ffi_checksum_method_client_is_livekit_rtc_supported() != 21068) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_matrix_sdk_ffi_checksum_method_client_is_login_with_qr_code_supported() != 48668) {
+    if (uniffi_matrix_sdk_ffi_checksum_method_client_is_login_with_qr_code_supported() != 43717) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_matrix_sdk_ffi_checksum_method_client_is_profiles_sliding_sync_extension_supported() != 2146) {
@@ -60399,6 +60494,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_matrix_sdk_ffi_checksum_method_client_login_with_oauth_callback() != 44635) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_matrix_sdk_ffi_checksum_method_client_login_with_qr_code_support() != 32739) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_matrix_sdk_ffi_checksum_method_client_logout() != 12942) {
